@@ -10,3 +10,9 @@ A workflow and toolkit for managing YouTube video downloads, metadata, and renam
 - `image_refs/`: Reference images/screenshots.
 
 See `docs/master_plan.md` for the master plan.
+
+
+## Quick Start
+
+- Clone the repo and see `docs/SETUP.md` for setup instructions.
+- Requires Python 3.8+, Google account, and JDownloader2 with MyJDownloader API access.

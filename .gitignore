@@ -3,7 +3,7 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.venv/
+stalkr_env/
 venv/
 env/
 # macOS/OS junk
@@ -15,3 +15,6 @@ env/
 *.env
 # Apps Script clasp files (optional)
 .clasp.json
+
+
+
