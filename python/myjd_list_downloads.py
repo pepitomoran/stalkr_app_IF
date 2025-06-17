@@ -21,6 +21,16 @@ print(f"Connected to device: {MYJD_DEVICE}")
 
 # List all packages in Downloadlist
 dl_packages = device.downloads.query_packages()
-print("\nCurrent Download Packages:")
+print("\nCurrent Download Packages and Files:")
+
 for pkg in dl_packages:
-    print(f" - {pkg['name']} | Status: {pkg['status']} | Files: {pkg['childCount']}")
+    print(f"\nPackage: {pkg['name']} | Status: {pkg['status']} | Files: {pkg['childCount']}")
+# Get all links
+    all_links = device.downloads.query_links()
+    # Filter for links in this package
+    pkg_links = [link for link in all_links if link.get('packageUUID') == pkg['uuid']]
+    for link in pkg_links:
+        name = link.get('name', 'N/A')
+        status = link.get('status', 'N/A')
+        save_path = link.get('downloadPath', 'N/A')
+        print(f"  - File: {name} | Status: {status} | Path: {save_path}")
