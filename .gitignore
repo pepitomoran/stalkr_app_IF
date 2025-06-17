@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+# macOS/OS junk
+.DS_Store
+# Editor files
+.vscode/
+.idea/
+# Credentials/secrets
+*.env
+# Apps Script clasp files (optional)
+.clasp.json
