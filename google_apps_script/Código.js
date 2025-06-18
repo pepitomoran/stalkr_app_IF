@@ -254,3 +254,11 @@ function syncYouTubeMetadata() {
 
   Logger.log(`YouTube Metadata Sync: Updated ${updatedCount} rows, found ${mismatchCount} mismatches, and ${errorCount} errors.`);
 }
+function doPost(e) {
+  syncYouTubeMetadata();
+  return ContentService.createTextOutput('OK');
+}
+
+function doGet(e) {
+  return ContentService.createTextOutput('Web App is running! Use POST to trigger sync.');
+}

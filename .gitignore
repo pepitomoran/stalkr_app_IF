@@ -15,6 +15,21 @@ env/
 *.env
 # Apps Script clasp files (optional)
 .clasp.json
+private/
+
+# User and org configs (never commit secrets)
+python/config/user_config.json
+private/
+private/org_secrets.json
+private/*.json
+
+# Log files
+logs/
+
+junk/
+junk/video_downloads/
 
 
 
+docs/STATUS_REPORT.md
+docs/AI_AGENT_INSTRUCTIONS_ORG.md
