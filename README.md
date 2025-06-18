@@ -48,3 +48,28 @@ This script verifies Google Sheet and MyJDownloader connections using your local
 
 > Make sure your service account credentials and org_secrets.json are present in the `private/` folder.  
 > Never commit real credentials or user configs—these files are listed in `.gitignore`.
+
+## Stage 3: Download, Rename, and Sheet Update
+
+This stage introduces automated video downloads and standardized file renaming, using the INDEPENDENT FILMMAKER LABELS template.
+
+**How it works:**
+- The script scans the configured tab in the Google Sheet for valid YouTube links.
+- Downloads are sent to the user’s JDownloader device.
+- After download, each file is renamed using the template below, then the Sheet is updated with the new filename, download status, and completion timestamp.
+
+**Filename Template:**  
+`DESCRIPTION_yt_{youtubeid}_{channel}_#ncm{jobnumber}_#nr_{resolution}_{researcherinitials}_stalkr`
+
+- **DESCRIPTION**: Placeholder for now (future: from Sheet/project)
+- **yt**: Source (“yt” for YouTube)
+- **{youtubeid}**: Extracted from URL
+- **{channel}**: Uploader/channel name (cleaned, underscores for spaces)
+- **#ncm{jobnumber}**: Four-digit job number from Sheet name (first 4+ digits, optional “L” ignored)
+- **#nr**: Default for release status
+- **{resolution}**: Best available (auto-detected)
+- **{researcherinitials}**: From user config
+- **_stalkr**: Suffix
+
+**Example:**  
+`DESCRIPTION_yt_abTTtyAPeN4_MBrass_#ncm1111_#nr_1080_pm_stalkr`
