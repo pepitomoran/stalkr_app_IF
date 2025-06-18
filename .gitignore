@@ -33,3 +33,5 @@ junk/video_downloads/
 
 docs/STATUS_REPORT.md
 docs/AI_AGENT_INSTRUCTIONS_ORG.md
+
+python/sheet_extract_test.py
