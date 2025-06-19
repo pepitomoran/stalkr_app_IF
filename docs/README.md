@@ -1,75 +1,102 @@
-# Stalkr App IF — YouTube Metadata + JDownloader Workflow
+Stalkr App IF — YouTube Metadata + JDownloader Workflow
+A workflow and toolkit for managing YouTube video downloads, metadata, and file renaming using Google Sheets, Python, and JDownloader2.
 
-A workflow and toolkit for managing YouTube video downloads, metadata, and renaming using Google Sheets, Apps Script, Python, and JDownloader2.
-
-## Structure
-
-- `google_apps_script/`: All Google Apps Script code and config.
-- `python/`: Python scripts for automation and integration.
-- `docs/`: Project documentation, setup guides, AI instructions.
-- `image_refs/`: Reference images/screenshots.
-
-See `docs/master_plan.md` for the master plan.
-
-
-## Quick Start
-
-- Clone the repo and see `docs/SETUP.md` for setup instructions.
-- Requires Python 3.8+, Google account, and JDownloader2 with MyJDownloader API access.
-
-## Configuration & Sensitive Data
-
-- Per-user config: `python/config/user_config.json` (not tracked in git)
-- Org credentials/secrets: `private/org_secrets.json`, plus Google service account file(s)
-- Logs: `logs/`
-
-> Never commit secrets or user configs! Always keep your `private/` and `python/config/` folders in your `.gitignore`.
-
-
-## Setup & First Use
-
-1. **Configure your local user settings**  
-   Run:
-python python/setup_user_config.py
-
-markdown
+🚦 Project Structure
+makefile
 Copiar
 Editar
-This will prompt for initials, JDownloader device name, download folder, and Google Sheet URL. Your settings are saved in `python/config/user_config.json` (never tracked by git).
+stalkr_app_IF/
+├── config/           # user and org config (gitignored)
+├── docs/             # documentation, setup guides, AI instructions
+├── downloader/       # all download and automation scripts
+├── private/          # Google API/service account keys (gitignored)
+├── sheet/            # all Google Sheets logic, metadata, and tools
+├── tests/            # test and utility scripts
+├── utils/            # filename generator and other shared utilities
+├── requirements.txt  # Python dependencies
+└── setup_user_config.py
+🚀 Quick Start
+Clone the repo and activate your Python environment:
 
-2. **Check all connections**  
-Run:
-python python/connection_check.py
-
-sql
+bash
 Copiar
 Editar
-This script verifies Google Sheet and MyJDownloader connections using your local config and org credentials from `private/org_secrets.json`.
+git clone <repo_url>
+cd stalkr_app_IF
+source stalkr_env/bin/activate   # or your virtualenv
+pip install -r requirements.txt
+Initial setup
+Configure your local user and device:
 
-> Make sure your service account credentials and org_secrets.json are present in the `private/` folder.  
-> Never commit real credentials or user configs—these files are listed in `.gitignore`.
+bash
+Copiar
+Editar
+python setup_user_config.py
+This will prompt for initials, JDownloader2 device path, download folder, and Google Sheet URL.
+Your settings are saved in config/user_config.json (never tracked by git).
 
-## Stage 3: Download, Rename, and Sheet Update
+Validate/refresh Sheet metadata:
 
-This stage introduces automated video downloads and standardized file renaming, using the INDEPENDENT FILMMAKER LABELS template.
+bash
+Copiar
+Editar
+python sheet/sheet_metadata_validator.py
+This ensures your Google Sheet is ready for automation.
 
-**How it works:**
-- The script scans the configured tab in the Google Sheet for valid YouTube links.
-- Downloads are sent to the user’s JDownloader device.
-- After download, each file is renamed using the template below, then the Sheet is updated with the new filename, download status, and completion timestamp.
+Submit YouTube videos to JDownloader2:
 
-**Filename Template:**  
-`DESCRIPTION_yt_{youtubeid}_{channel}_#ncm{jobnumber}_#nr_{resolution}_{researcherinitials}_stalkr`
+bash
+Copiar
+Editar
+python downloader/download_videos.py
+Downloads are sent to the configured JDownloader device.
 
-- **DESCRIPTION**: Placeholder for now (future: from Sheet/project)
-- **yt**: Source (“yt” for YouTube)
-- **{youtubeid}**: Extracted from URL
-- **{channel}**: Uploader/channel name (cleaned, underscores for spaces)
-- **#ncm{jobnumber}**: Four-digit job number from Sheet name (first 4+ digits, optional “L” ignored)
-- **#nr**: Default for release status
-- **{resolution}**: Best available (auto-detected)
-- **{researcherinitials}**: From user config
-- **_stalkr**: Suffix
+Rename completed downloads and update Sheet:
 
-**Example:**  
-`DESCRIPTION_yt_abTTtyAPeN4_MBrass_#ncm1111_#nr_1080_pm_stalkr`
+bash
+Copiar
+Editar
+python downloader/watch_and_rename.py
+Renames each file with the correct template, updates download status in your Sheet.
+
+🔐 Configuration & Sensitive Data
+User config: config/user_config.json
+
+Org secrets: config/org_secrets.json
+
+Google API/service account keys: private/stalkrorgsheetapi-XXXX.json
+
+These files are protected in .gitignore. Never commit secrets or local configs!
+
+📝 Workflow Overview
+Sheet-driven: Google Sheet acts as the source of truth for YouTube links, channel, and metadata.
+
+Automated download: Downloads handled by JDownloader2 via the MyJDownloader API.
+
+Consistent naming: All files renamed using the INDEPENDENT FILMMAKER LABELS template.
+
+Status tracking: Google Sheet is updated with download/rename status automatically.
+
+Filename Template:
+DESCRIPTION_yt_{youtubeid}_{channel}_#ncm{jobnumber}_#nr_{resolution}_{researcherinitials}_stalkr
+
+Example:
+DESCRIPTION_yt_abTTtyAPeN4_MBrass_#ncm1111_#nr_1080_pm_stalkr
+
+🧩 Developer Notes
+All package folders include __init__.py for clean imports.
+
+Use absolute imports (from utils.filename_generator import ...).
+
+Always run scripts from the repo root, or ensure PYTHONPATH includes project root.
+
+🛡️ Security/Privacy
+All configs and credentials are gitignored.
+
+Never share or commit real config/user_config.json, config/org_secrets.json, or files in private/.
+
+See .gitignore for details.
+
+📋 Documentation
+See docs/MASTER_PLAN_v3.md for master plan, docs/STATUS_REPORT.md for progress,
+and docs/SETUP.md for step-by-step onboarding.

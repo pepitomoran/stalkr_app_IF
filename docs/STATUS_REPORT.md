@@ -85,4 +85,60 @@ STAGE 3: Download, Rename, and Sheet Update — IN PROGRESS
 - Future: expand to batch mode and real-time monitoring
 
 ---
+Stage: Major Reorganization & Codebase Cleanup
+What’s Complete
+Project directory restructured:
 
+Scripts are now organized into downloader/, sheet/, utils/, config/, private/, docs/, and tests/.
+
+All pipeline scripts use centralized config and connection utilities.
+
+Removed obsolete Google Apps Script files, junk/, and unnecessary cache/temp files.
+
+All import paths and config references updated:
+
+All scripts use absolute paths from project root for config, secrets, and private keys.
+
+Added __init__.py to each code package directory for clean imports.
+
+.gitignore updated:
+
+Now protects all sensitive config, secrets, private tokens, and Python cache.
+
+Test coverage:
+
+All core scripts (setup_user_config.py, sheet_metadata_validator.py, download_videos.py, watch_and_rename.py) tested and working in new structure.
+
+Utility scripts and test tools moved to tests/.
+
+Current Pipeline
+Run setup_user_config.py
+Ensures user config, JD2 app path, and Sheet credentials are set.
+
+Run sheet/sheet_metadata_validator.py
+Validates and populates Google Sheet metadata.
+
+Run downloader/download_videos.py
+Sends new download jobs to JDownloader2.
+
+Run downloader/watch_and_rename.py
+Renames finished downloads using standard template and updates Sheet status.
+
+Known Issues / Next Steps
+Reorg branch ready for PR or merge.
+
+All scripts tested from repo root and working.
+
+Unit tests and automated test coverage can be expanded.
+
+Consider further documentation update in README.md for onboarding new users.
+
+Potential feature roadmap:
+
+Add logging/error history
+
+Improve Sheet status feedback (e.g., color)
+
+Add batch/loop/watcher modes
+
+Project is stable and ready for further feature development or team onboarding.
