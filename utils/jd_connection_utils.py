@@ -15,6 +15,15 @@ def detect_os():
         return "linux"
     return "unknown"
 
+def get_default_jd_path():
+    os_type = detect_os()
+    if os_type == "mac":
+        return "/Applications/JDownloader2.app"
+    elif os_type == "win":
+        return r"C:\Program Files\JDownloader2\JDownloader2.exe"
+    else:
+        return "/path/to/JDownloader2"
+
 def load_user_config(user_config_path):
     if not os.path.exists(user_config_path):
         return {}

@@ -7,9 +7,10 @@ import requests
 import isodate
 
 # --- Config locations ---
-USER_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config", "user_config.json")
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # <- go up one from /sheet/
+USER_CONFIG_PATH = os.path.join(BASE_DIR, "config", "user_config.json")
 CREDENTIALS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "private", "stalkrorgsheetapi-4feb1ec20bbe.json"))
-ORG_SECRETS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "private", "org_secrets.json"))
+ORG_SECRETS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "config", "org_secrets.json"))
 
 # --- Required fields for user config ---
 REQUIRED_FIELDS = [

@@ -1,7 +1,9 @@
+import sys
 import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import shutil
 from utils.filename_generator import generate_ifl_filename
-from utils.sheet_tools import (
+from sheet.sheet_tools import (
     get_metadata_by_title,
     update_status_by_title,
     normalize
@@ -11,10 +13,11 @@ from utils.jd_connection_utils import (
     load_user_config
 )
 
-BASE_DIR = os.path.dirname(__file__)
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 USER_CONFIG_PATH = os.path.join(BASE_DIR, "config", "user_config.json")
-ORG_SECRETS_PATH = os.path.abspath(os.path.join(BASE_DIR, "..", "private", "org_secrets.json"))
-SERVICE_ACCOUNT_PATH = os.path.abspath(os.path.join(BASE_DIR, "..", "private", "stalkrorgsheetapi-4feb1ec20bbe.json"))
+ORG_SECRETS_PATH = os.path.join(BASE_DIR, "config", "org_secrets.json")
+SERVICE_ACCOUNT_PATH = os.path.join(BASE_DIR, "private", "stalkrorgsheetapi-4feb1ec20bbe.json")
+
 
 def fuzzy_find_file(directory, title):
     n_title = normalize(title)

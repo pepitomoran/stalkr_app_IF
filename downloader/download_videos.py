@@ -1,4 +1,6 @@
+import sys
 import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import json
 import re
 import gspread
@@ -9,11 +11,13 @@ from utils.jd_connection_utils import (
     load_user_config
 )
 
-# --- Config Paths ---
-BASE_DIR = os.path.dirname(__file__)
+
+
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # <- go up one from /sheet/
 USER_CONFIG_PATH = os.path.join(BASE_DIR, "config", "user_config.json")
-SERVICE_ACCOUNT_PATH = os.path.abspath(os.path.join(BASE_DIR, "..", "private", "stalkrorgsheetapi-4feb1ec20bbe.json"))
-ORG_SECRETS_PATH = os.path.abspath(os.path.join(BASE_DIR, "..", "private", "org_secrets.json"))
+
+SERVICE_ACCOUNT_PATH = os.path.join(BASE_DIR, "private", "stalkrorgsheetapi-4feb1ec20bbe.json")
+ORG_SECRETS_PATH = os.path.join(BASE_DIR, "config", "org_secrets.json")
 
 # --- Extract YouTube ID ---
 def extract_youtube_id(url):

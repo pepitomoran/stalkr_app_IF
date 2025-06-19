@@ -1,6 +1,8 @@
 import os
 import json
 import platform
+from utils.jd_connection_utils import detect_os, get_default_jd_path
+
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config", "user_config.json")
 

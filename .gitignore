@@ -1,37 +1,40 @@
-# Python
+# Python cache and editor files
 __pycache__/
 *.pyc
 *.pyo
-*.pyd
-stalkr_env/
+*.swp
+*.bak
+*.tmp
+*.log
+
+# macOS and system files
+.DS_Store
+Thumbs.db
+
+# Virtual environments
 venv/
 env/
-# macOS/OS junk
-.DS_Store
-# Editor files
+stalkr_env/
+
+# VSCode, PyCharm, other editors
 .vscode/
 .idea/
-# Credentials/secrets
-*.env
-# Apps Script clasp files (optional)
-.clasp.json
+
+# Jupyter/IPython
+.ipynb_checkpoints/
+
+# Local settings and secret config
+config/user_config.json
+config/org_secrets.json
 private/
+# If you ever store tokens or creds in config/
+config/*.token
+config/*.secret
+config/*.key
 
-# User and org configs (never commit secrets)
-python/config/user_config.json
-private/
-private/org_secrets.json
-private/*.json
-
-# Log files
-logs/
-
+# Google API tokens
+*.json
+!private/stalkrorgsheetapi-4feb1ec20bbe.json  # (un-ignore if you want to keep this in repo—else remove the ! line)
 junk/
-junk/video_downloads/
-
-
-
-docs/STATUS_REPORT.md
-docs/AI_AGENT_INSTRUCTIONS_ORG.md
-
-python/sheet_extract_test.py
+logs/
+tests/
