@@ -1,48 +1,96 @@
-# Project Setup
+Project Setup
+1. Python Environment
+Create and activate the virtual environment:
 
-## Python Environment
+bash
+Copiar
+Editar
+python3 -m venv stalkr_env
+source stalkr_env/bin/activate
+Install required packages:
 
-1. Create and activate the virtual environment:
-    ```bash
-    python3 -m venv stalkr_env
-    source stalkr_env/bin/activate
-    ```
+bash
+Copiar
+Editar
+pip install -r requirements.txt
+2. Configuration & Credentials
+User config:
+Path: config/user_config.json
+How to generate:
+Run:
 
-2. Install required packages:
-    ```bash
-    pip install -r requirements.txt
-    ```
+bash
+Copiar
+Editar
+python setup_user_config.py
+and follow the prompts.
+This stores your initials, JD2 device, download folder, and Sheet URL.
 
-## Local User Config
+Org credentials:
+Path:
 
-- **Config path:** `python/config/user_config.json`
-- **How to generate:** Run `python python/setup_user_config.py` and follow prompts.
-- **What it stores:** Your initials, device name, download folder, and default Sheet URL.
+config/org_secrets.json (MyJDownloader/org login)
 
-## Org Credentials
+private/stalkrorgsheetapi-<xxxx>.json (Google service account)
+These are never committed—keep them safe.
 
-- **Path:** `private/org_secrets.json` and service account json.
-- **How to use:** These are automatically loaded by `connection_check.py` and other scripts. Do not commit these files.
+3. Initial Connection Test (Optional)
+You can test your config and device by running:
 
-## Connection Test
+bash
+Copiar
+Editar
+python setup_user_config.py
+If all is set up, it will confirm paths and credentials.
 
-- **How to test:** Run `python python/connection_check.py`
-- This will check both Google Sheets and MyJDownloader access, reporting status for both.
+4. Core Workflow
+Run each stage from the project root in order:
 
-## Stage 3: Download & Rename Script Setup
+Validate Sheet metadata
 
-**Requirements:**
-- All prior config steps completed (user_config, org_secrets, credentials, MyJDownloader setup)
-- Install/confirm the following Python packages:
+bash
+Copiar
+Editar
+python sheet/sheet_metadata_validator.py
+Updates/validates all YouTube links, fills in title/channel/duration, flags duplicates, and updates status columns in the Sheet.
 
-pip install myjdapi
+Send new downloads to JDownloader2
 
-- Download destination folder must be set in `user_config.json`
-- Ensure JDownloader is running and logged in to org account on your device
+bash
+Copiar
+Editar
+python downloader/download_videos.py
+Queues eligible videos from Sheet for download (best video, template name, etc).
 
-**How to Use:**
-- Run the Stage 3 script (`python/download_and_rename.py`) from the project root
-- The script will download, rename, and update the Sheet for each eligible video, using the current naming convention
+Rename finished downloads and update status
 
-**To update the filename template or logic:**  
-Edit the filename generator function in the Stage 3 script (`download_and_rename.py`)
+bash
+Copiar
+Editar
+python downloader/watch_and_rename.py
+Renames each finished file with template, updates status column in Sheet.
+
+5. Additional Notes
+Always run scripts from the repo root (not from inside /downloader or /sheet) for clean imports.
+
+Add new user/config/secrets only via setup scripts—never edit by hand.
+
+If you see import errors, confirm you have __init__.py in all code folders and that you are running scripts with the root in PYTHONPATH.
+
+6. Test & Utility Scripts
+Run test and debug scripts from /tests as needed.
+
+bash
+Copiar
+Editar
+python tests/myjd_list_downloads.py
+7. Privacy & Security
+All sensitive config and keys are gitignored.
+
+Never commit config/user_config.json, config/org_secrets.json, private/*.json, or any real tokens/keys.
+
+8. For Org Admins/Devs
+For service account setup, JD org login, and Sheet sharing, see docs/MASTER_PLAN_v3.md.
+
+For onboarding and AI agent instructions, see docs/AI_AGENT_INSTRUCTIONS_ORG.md.
+
