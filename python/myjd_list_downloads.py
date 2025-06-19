@@ -26,7 +26,7 @@ print("\nCurrent Download Packages and Files:")
 for pkg in dl_packages:
     print(f"\nPackage: {pkg['name']} | Status: {pkg['status']} | Files: {pkg['childCount']}")
 # Get all links
-    all_links = device.downloads.query_links()
+    all_links = device.downloads.query_links({'saveTo': True})
     # Filter for links in this package
     pkg_links = [link for link in all_links if link.get('packageUUID') == pkg['uuid']]
     for link in pkg_links:
