@@ -100,3 +100,24 @@ See .gitignore for details.
 📋 Documentation
 See docs/MASTER_PLAN_v3.md for master plan, docs/STATUS_REPORT.md for progress,
 and docs/SETUP.md for step-by-step onboarding.
+
+# README Addendum — Batch & Watcher Mode (June 2025)
+
+## Batch (Catch-up) Mode
+
+* On activation, app finds all unprocessed rows in the Sheet where `Researcher Name` matches the active user.
+* Prompts user to confirm how many rows/files to process; cancels or continues based on user input.
+* Processes: populates metadata, downloads, updates status, logs all actions.
+* Designed for multi-user Sheets; each user sees only their rows.
+
+## Watcher Mode
+
+* After batch/catch-up, app enters watcher mode: periodically checks for new Sheet entries for this user.
+* Any new rows found are automatically processed as above.
+* Watcher mode is polling-based (interval: configurable, default 60s). No Google Apps Script/webhooks needed.
+* Ideal for "always-on" or hands-off operation.
+
+## Usage Note
+
+* Activation button (or script start) always triggers batch/catch-up first, then enters watcher mode.
+* Logs and status columns provide full traceability for every row processed.

@@ -102,6 +102,19 @@ A modular, Python-based, cross-platform workflow for a multi-user organization. 
 * User can trigger “refresh” (manual Sheet re-sync) or set auto-poll interval
 * App supports "show history" and (future) "undo last action"
 
+ Batch/Catch-up & Watcher Mode (June 2025 Addendum)
+
+
+
+Batch/Catch-up: On activation, find all unprocessed Sheet rows assigned to the user (Researcher Name or unique ID from config), prompt user to confirm, and process as a batch (fetch metadata, download, update Sheet, log). Designed for multi-user environments.
+
+Watcher Mode: After batch phase, enter polling loop. Every X seconds, check Sheet for new rows for the user, process immediately. No need for Apps Script/webhooks; polling is robust and cross-platform.
+
+Activation button always runs batch phase first, then transitions to watcher automatically.
+
+Logging: Continue with summary and per-row logs for every processing phase. Use Sheet "Status" column for clear, actionable feedback for each processed row.
+
+User logic: All actions are user-specific; app does not process or interfere with other users’ rows.
 ---
 
 ## 3. CONFIG & DEPLOYMENT

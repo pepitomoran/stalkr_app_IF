@@ -142,3 +142,29 @@ Improve Sheet status feedback (e.g., color)
 Add batch/loop/watcher modes
 
 Project is stable and ready for further feature development or team onboarding.
+
+# STATUS REPORT / HANDOVER (Batch & Watcher Mode Kickoff — June 2025)
+
+**Logging:**
+
+* Unified `logprint` and summary logging implemented in all key scripts.
+* Script start/end, errors, warnings, and summaries now visible in terminal and `/logs/`.
+
+**Sheet Status:**
+
+* Status column enhancements planned for next phase.
+
+**Batch/Catch-up & Watcher Mode (Planned/Next):**
+
+* Activation begins with a “catch-up” pass: finds and processes all new/unprocessed rows assigned to current user, prompts for confirmation, fetches metadata/downloads, updates logs and status columns.
+* After catch-up, script enters watcher mode: polls the Sheet at intervals, monitors for new rows for the user, and processes/downloads as they appear.
+* Strict per-user logic: each user processes only their rows (by `Researcher Name` or unique ID in config).
+* Polling approach for reliability (not webhooks/Apps Script events).
+
+**Git:**
+
+* Next features will be developed in a new branch: `feature/batch-watcher-mode`.
+
+**Ready for:**
+
+* CLI scaffold of batch/catch-up and watcher loop, with full logging and Sheet status support.
