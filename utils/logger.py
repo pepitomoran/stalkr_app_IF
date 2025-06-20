@@ -64,3 +64,32 @@ def log_event(
         if write_header:
             writer.writeheader()
         writer.writerow(row)
+
+import os
+
+def logprint(message, action, status="info", error_message=None, sheet_row=None, extra_info=None):
+    script = os.path.basename(__file__)
+    print(message)
+    log_event(
+        script=script,
+        action=action,
+        status=status,
+        error_message=error_message,
+        sheet_row=sheet_row,
+        extra_info=extra_info
+    )
+
+def log_script(func):
+    import os
+    def wrapper(*args, **kwargs):
+        script = os.path.basename(__file__)
+        log_event(script=script, action="script_start", status="info")
+        try:
+            result = func(*args, **kwargs)
+            log_event(script=script, action="script_end", status="success")
+            return result
+        except Exception as e:
+            log_event(script=script, action="fatal_error", status="error", error_message=str(e))
+            print(f"❌ Fatal error: {e}")
+            raise
+    return wrapper
