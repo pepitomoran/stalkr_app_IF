@@ -2,23 +2,24 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import json
-import re
-import gspread
-from google.oauth2.service_account import Credentials
 import requests
 import isodate
 from utils.logger import logprint, log_event, log_script
+from sheet.sheet_tools import (
+    get_sheet,
+    add_missing_columns,
+    find_graveyard_row,
+    filter_research_rows,
+    ensure_column,
+    normalize,
+    SHEET_KEYS  # This is loaded from org_secrets.json
+)
 
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-USER_CONFIG_PATH = os.path.join(BASE_DIR, "config", "user_config.json")
-CREDENTIALS_PATH = os.path.join(BASE_DIR, "private", "stalkrorgsheetapi-4feb1ec20bbe.json")
-ORG_SECRETS_PATH = os.path.join(BASE_DIR, "config", "org_secrets.json")
-
-# --- Extract YouTube ID ---
 def extract_youtube_id(url):
+    # Temporary until you switch to utils/youtube.py
+    import re
     if not url or not isinstance(url, str):
         return None
-    # Find v= or youtu.be/ or /embed/
     match = re.search(r'(?:v=|youtu\.be/|/embed/|/shorts/)([0-9A-Za-z_-]{11})', url)
     return match.group(1) if match else None
 
@@ -39,7 +40,6 @@ def fetch_youtube_metadata(video_id, api_key):
     snippet = items[0]["snippet"]
     details = items[0]["contentDetails"]
 
-    # Duration: convert ISO8601 to "mm:ss"
     try:
         duration = isodate.parse_duration(details.get("duration", ""))
         total_seconds = int(duration.total_seconds())
@@ -60,199 +60,96 @@ def fetch_youtube_metadata(video_id, api_key):
         "duration": parsed_duration
     }
 
-def find_graveyard_row(rows, header_keys):
-    """
-    Returns the row index (0-based) of the Graveyard header (archive region).
-    If not found, returns None.
-    """
-    for idx, row in enumerate(rows):
-        # Test for header repetition (ignore case, spaces)
-        row_norm = [str(cell).strip().lower() for cell in row]
-        if all(any(key.lower() in cell for cell in row_norm) for key in header_keys):
-            # Skip first header; look for a second header row
-            if idx > 0:
-                return idx
-    return None
+def load_user_config(user_config_path):
+    with open(user_config_path, "r") as f:
+        return json.load(f)
 
-def validate_row(sheet, row_idx, col_map, all_rows, graveyard_idx, api_key):
-    """
-    Validates/updates a single row. Only runs if row_idx < graveyard_idx (research row).
-    Updates metadata and duplicate status. 
-    Returns: dict with keys: updated (bool), duplicate (str), non_youtube (bool)
-    """
-    row = all_rows[row_idx]
-    url = row[col_map.get("URL")]
-    duplicate_col = col_map.get("Duplicate", None)
-    status_col = col_map.get("Status", None)
-    researcher_col = col_map.get("Researcher Name", None)
-    title_col = col_map.get("Title", None)
-    user_col = col_map.get("User", None)
-    date_col = col_map.get("date", None)
-    duration_col = col_map.get("duration", None)
-
-    if row_idx >= graveyard_idx:
-        # In Graveyard/archive section—do NOT touch
-        return {"updated": False, "duplicate": "", "non_youtube": False}
-
-    # --- Check Non-YouTube URL ---
-    yt_id = extract_youtube_id(url)
-    if not yt_id:
-        # Not a YouTube URL: flag as non-YouTube, skip
-        if duplicate_col is not None:
-            sheet.update_cell(row_idx+1, duplicate_col+1, "Non-YouTube link")
-        if status_col is not None:
-            sheet.update_cell(row_idx+1, status_col+1, "Non-YouTube link")
-        return {"updated": True, "duplicate": "Non-YouTube link", "non_youtube": True}
-
-    # --- Duplicate Checking: scan ALL rows (including Graveyard) ---
-    duplicates = []
-    for i, other in enumerate(all_rows):
-        if i == row_idx:
-            continue
-        other_url = other[col_map.get("URL", -1)]
-        other_yt_id = extract_youtube_id(other_url)
-        if yt_id and other_yt_id == yt_id:
-            # Check if in Graveyard/archive or research
-            if i >= graveyard_idx:
-                # Archive/Graveyard
-                duplicates.append((i+1, "search PWC Archive tab for further data"))
-            else:
-                # Research row: get status, researcher
-                other_status = other[col_map.get("Status", -1)] if status_col is not None else ""
-                other_researcher = other[col_map.get("Researcher Name", -1)] if researcher_col is not None else ""
-                duplicates.append((i+1, f"Duplicate of row {i+1} [Status: {other_status}, Researcher: {other_researcher}]"))
-    duplicate_str = ""
-    if duplicates:
-        if any("search PWC Archive tab" in x[1] for x in duplicates):
-            # Archive match gets priority
-            duplicate_str = "search PWC Archive tab for further data"
-        else:
-            # Research match—concatenate all found
-            duplicate_str = " ; ".join([x[1] for x in duplicates])
-    # Update Duplicate col
-    if duplicate_col is not None:
-        sheet.update_cell(row_idx+1, duplicate_col+1, duplicate_str)
-    # Update status if duplicate in research rows (not archive)
-    if "Duplicate of row" in duplicate_str:
-        if status_col is not None:
-            sheet.update_cell(row_idx+1, status_col+1, "DUPLICATE")
-        return {"updated": True, "duplicate": duplicate_str, "non_youtube": False}
-    # Metadata: only update if missing
-    updated = False
-    if (title_col is not None and not row[title_col]) and api_key and yt_id:
-        meta = fetch_youtube_metadata(yt_id, api_key)
-        if meta:
-            sheet.update_cell(row_idx+1, title_col+1, meta["title"])
-            updated = True
-            if user_col is not None: sheet.update_cell(row_idx+1, user_col+1, meta["channel"])
-            if date_col is not None: sheet.update_cell(row_idx+1, date_col+1, meta["publishedAt"])
-            if duration_col is not None: sheet.update_cell(row_idx+1, duration_col+1, meta["duration"])
-    return {"updated": updated, "duplicate": duplicate_str, "non_youtube": False}
-
-def load_user_config():
-    if not os.path.exists(USER_CONFIG_PATH):
-        logprint(f"❌ No user config at {USER_CONFIG_PATH}", action="user_config_missing", status="error")
-        return None
-    with open(USER_CONFIG_PATH, "r") as f:
-        cfg = json.load(f)
-    return cfg
-
-def load_org_secrets():
-    if not os.path.exists(ORG_SECRETS_PATH):
-        logprint(f"❌ org_secrets.json not found at {ORG_SECRETS_PATH}", action="org_secrets_missing", status="error")
-        return None
-    with open(ORG_SECRETS_PATH, "r") as f:
-        try:
-            secrets = json.load(f)
-            return secrets
-        except Exception as e:
-            logprint(f"❌ Could not read org_secrets.json: {e}", action="org_secrets_read_failed", status="error", error_message=str(e))
-            return None
-
-def get_sheet(cfg):
-    scope = [
-        "https://spreadsheets.google.com/feeds",
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive.file",
-        "https://www.googleapis.com/auth/drive"
-    ]
-    creds = Credentials.from_service_account_file(CREDENTIALS_PATH, scopes=scope)
-    client = gspread.authorize(creds)
-    spreadsheet = client.open_by_url(cfg["sheet_url"])
-    worksheet_name = cfg.get("last_tab", "")
-
-    if worksheet_name:
-        try:
-            sheet = spreadsheet.worksheet(worksheet_name)
-            print(f"✅ Using tab: '{worksheet_name}'")
-        except gspread.exceptions.WorksheetNotFound:
-            print(f"❌ Tab '{worksheet_name}' not found in this Google Sheet.")
-            all_tabs = [ws.title for ws in spreadsheet.worksheets()]
-            print("Available tabs:")
-            for idx, tab in enumerate(all_tabs, 1):
-                print(f"{idx}: {tab}")
-            while True:
-                try:
-                    tab_idx = int(input(f"Select a tab by number (1-{len(all_tabs)}): ")) - 1
-                    assert 0 <= tab_idx < len(all_tabs)
-                    break
-                except (ValueError, AssertionError):
-                    print("Invalid selection. Please try again.")
-            sheet = spreadsheet.get_worksheet(tab_idx)
-            cfg["last_tab"] = all_tabs[tab_idx]
-            with open(USER_CONFIG_PATH, "w") as f:
-                json.dump(cfg, f, indent=2)
-            print(f"✅ Updated 'last_tab' in config to: {cfg['last_tab']}")
-    else:
-        all_tabs = [ws.title for ws in spreadsheet.worksheets()]
-        print("No tab specified in config.")
-        print("Available tabs:")
-        for idx, tab in enumerate(all_tabs, 1):
-            print(f"{idx}: {tab}")
-        while True:
-            try:
-                tab_idx = int(input(f"Select a tab by number (1-{len(all_tabs)}): ")) - 1
-                assert 0 <= tab_idx < len(all_tabs)
-                break
-            except (ValueError, AssertionError):
-                print("Invalid selection. Please try again.")
-        sheet = spreadsheet.get_worksheet(tab_idx)
-        cfg["last_tab"] = all_tabs[tab_idx]
-        with open(USER_CONFIG_PATH, "w") as f:
-            json.dump(cfg, f, indent=2)
-        print(f"✅ Updated 'last_tab' in config to: {cfg['last_tab']}")
-    return sheet
+def load_org_secrets(org_secrets_path):
+    with open(org_secrets_path, "r") as f:
+        return json.load(f)
 
 @log_script
 def main():
-    # CLI mode: validates all research rows
-    cfg = load_user_config()
-    if not cfg:
-        return
-    secrets = load_org_secrets()
-    if not secrets or not secrets.get("youtube_api_key"):
-        return
-    api_key = secrets["youtube_api_key"]
-    sheet = get_sheet(cfg)
-    rows = sheet.get_all_values()
-    header = rows[0]
-    col_map = {name: idx for idx, name in enumerate(header)}
-    header_keys = ["Researcher Name", "URL", "Title", "User"]  # Extend as needed
+    BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+    USER_CONFIG_PATH = os.path.join(BASE_DIR, "config", "user_config.json")
+    CREDENTIALS_PATH = os.path.join(BASE_DIR, "private", "stalkrorgsheetapi-4feb1ec20bbe.json")
+    ORG_SECRETS_PATH = os.path.join(BASE_DIR, "config", "org_secrets.json")
 
-    graveyard_idx = find_graveyard_row(rows, header_keys)
-    if graveyard_idx is None:
-        print("⚠️ Graveyard/archive section not found (no repeated header row).")
+    cfg = load_user_config(USER_CONFIG_PATH)
+    secrets = load_org_secrets(ORG_SECRETS_PATH)
+    api_key = secrets["youtube_api_key"]
+    sheet_keys = secrets["sheet_keys"]
+
+    worksheet, header, col_map, rows = get_sheet(cfg, CREDENTIALS_PATH)
+
+    # Ensure required columns exist using sheet_keys
+    required_cols = sheet_keys["research_keys"] + [sheet_keys["duplicate_column"]]
+    header, col_map = add_missing_columns(worksheet, header, required_cols)
+
+    # Find Graveyard/archive row from config
+    graveyard_idx = find_graveyard_row(rows, sheet_keys["archive_keys"])
+    if graveyard_idx is None or graveyard_idx == len(rows):
+        print("⚠️ Graveyard/archive section not found (no repeated archive header row).")
         cont = input("Proceed with all rows as research? [y/N]: ").strip().lower()
         if cont != "y":
             print("Exiting.")
             return
-        graveyard_idx = len(rows)  # treat all as research
+        graveyard_idx = len(rows)
+
+    # Only process user's research rows
+    user_initials = normalize(cfg["initials"])
+    research_row_indices = filter_research_rows(rows, col_map, user_initials, graveyard_idx)
 
     updated_count = 0
-    for idx, row in enumerate(rows[1:graveyard_idx], start=1):
-        res = validate_row(sheet, idx, col_map, rows, graveyard_idx, api_key)
-        if res["updated"]:
-            updated_count += 1
+    for idx in research_row_indices:
+        row = rows[idx]
+        url = row[col_map[sheet_keys["research_keys"][1]]]  # "URL"
+        duplicate_col = col_map[sheet_keys["duplicate_column"]]
+        title_col = col_map[sheet_keys["research_keys"][2]]  # "Title"
+        user_col = col_map.get(sheet_keys["research_keys"][3])  # "User"
+        date_col = col_map.get("date")
+        duration_col = col_map.get("duration")
+
+        yt_id = extract_youtube_id(url)
+        if not yt_id:
+            worksheet.update_cell(idx+1, duplicate_col+1, "Non-YouTube link")
+            continue
+
+        # --- Duplicate detection ---
+        duplicates_research = []
+        duplicates_archive = []
+        for i, other in enumerate(rows):
+            if i == idx:
+                continue
+            other_url = other[col_map[sheet_keys["research_keys"][1]]]  # "URL"
+            other_yt_id = extract_youtube_id(other_url)
+            if yt_id == other_yt_id:
+                if i >= graveyard_idx:
+                    duplicates_archive.append(i+1)
+                else:
+                    other_status = other[col_map.get(sheet_keys["status_column"], -1)] if sheet_keys["status_column"] in col_map else ""
+                    other_researcher = other[col_map.get(sheet_keys["researcher_column"], -1)] if sheet_keys["researcher_column"] in col_map else ""
+                    duplicates_research.append((i+1, other_status, other_researcher))
+
+        if duplicates_archive:
+            duplicate_str = "search PWC Archive tab for further data"
+        elif duplicates_research:
+            dup_msgs = [f"Duplicate of row {r} [Status: {s}, Researcher: {u}]" for (r,s,u) in duplicates_research]
+            duplicate_str = " ; ".join(dup_msgs)
+        else:
+            duplicate_str = ""
+
+        worksheet.update_cell(idx+1, duplicate_col+1, duplicate_str)
+
+        # Only update metadata if not duplicate in research and title is blank
+        if (not duplicate_str or duplicate_str == "search PWC Archive tab for further data") and (not row[title_col]) and api_key and yt_id:
+            meta = fetch_youtube_metadata(yt_id, api_key)
+            if meta:
+                worksheet.update_cell(idx+1, title_col+1, meta["title"])
+                if user_col is not None: worksheet.update_cell(idx+1, user_col+1, meta["channel"])
+                if date_col is not None: worksheet.update_cell(idx+1, date_col+1, meta["publishedAt"])
+                if duration_col is not None: worksheet.update_cell(idx+1, duration_col+1, meta["duration"])
+                updated_count += 1
 
     print(f"Done. {updated_count} rows updated.")
 
